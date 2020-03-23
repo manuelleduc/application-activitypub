@@ -22,7 +22,12 @@ package org.xwiki.contrib.activitypub.internal;
 import java.io.IOException;
 import java.net.URI;
 
+import javax.inject.Inject;
+
 import org.apache.commons.httpclient.HttpMethod;
+import org.apache.solr.client.solrj.SolrClient;
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.xwiki.contrib.activitypub.ActivityPubClient;
@@ -31,6 +36,7 @@ import org.xwiki.contrib.activitypub.ActivityPubJsonParser;
 import org.xwiki.contrib.activitypub.entities.Accept;
 import org.xwiki.contrib.activitypub.entities.ActivityPubObject;
 import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
+import org.xwiki.search.solr.Solr;
 import org.xwiki.test.junit5.mockito.ComponentTest;
 import org.xwiki.test.junit5.mockito.InjectMockComponents;
 import org.xwiki.test.junit5.mockito.MockComponent;
@@ -61,6 +67,10 @@ public class DefaultActivityPubObjectReferenceResolverTest
     @MockComponent
     private ActivityPubClient activityPubClient;
 
+    @MockComponent
+    private Solr solr;
+
+
     @Test
     public void resolveReferenceInvalidLink()
     {
@@ -80,6 +90,7 @@ public class DefaultActivityPubObjectReferenceResolverTest
             new ActivityPubObjectReference<>().setLink(URI.create("http://test/create/1"));
         when(this.activityPubClient.get(any())).thenReturn(hm);
         when(this.activityPubJsonParser.parse(anyString())).thenReturn(t);
+        when(this.solr.getClient("activitypub")).thenReturn(mock(SolrClient.class));
         assertSame(t, this.defaultActivityPubObjectReferenceResolver.resolveReference(reference));
         assertSame(t, reference.getObject());
     }
@@ -90,6 +101,7 @@ public class DefaultActivityPubObjectReferenceResolverTest
         when(this.activityPubClient.get(any())).thenThrow(new IOException(""));
         ActivityPubObjectReference<ActivityPubObject> reference =
             new ActivityPubObjectReference<>().setLink(URI.create("http://test/create/1"));
+        when(this.solr.getClient("activitypub")).thenReturn(mock(SolrClient.class));
         ActivityPubException e = assertThrows(ActivityPubException.class,
             () -> this.defaultActivityPubObjectReferenceResolver.resolveReference(reference));
         assertEquals("Error when retrieving the ActivityPub information from [http://test/create/1]", e.getMessage());

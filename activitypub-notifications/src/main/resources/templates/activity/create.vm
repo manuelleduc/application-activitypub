@@ -29,6 +29,13 @@
       #define($summary)
           $username created the document <a href="$object.url.get(0)">$object.name</a>.
       #end
+  #elseif($object.type == "Note")
+      #define($summary)
+          $username send a message:
+          <p>
+              $object.content 
+          </p>
+      #end
   #else
       #define($summary)
           $username created <a href="$object.id">$object.name</a>.

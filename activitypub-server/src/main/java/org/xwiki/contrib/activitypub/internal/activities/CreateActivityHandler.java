@@ -31,8 +31,9 @@ import org.apache.commons.httpclient.HttpMethod;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.contrib.activitypub.ActivityPubException;
 import org.xwiki.contrib.activitypub.ActivityRequest;
-import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
 import org.xwiki.contrib.activitypub.entities.AbstractActor;
+import org.xwiki.contrib.activitypub.entities.ActivityPubObject;
+import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
 import org.xwiki.contrib.activitypub.entities.Create;
 import org.xwiki.contrib.activitypub.entities.Inbox;
 import org.xwiki.contrib.activitypub.entities.Outbox;
@@ -59,6 +60,10 @@ public class CreateActivityHandler extends AbstractActivityHandler<Create>
             Inbox inbox = this.getInbox(actor);
             inbox.addActivity(create);
             this.activityPubStorage.storeEntity(inbox);
+            if (create.getObject() != null && create.getObject().getObject() != null) {
+                ActivityPubObject object = create.getObject().getObject();
+                this.activityPubStorage.storeEntity(object.getId().toASCIIString(), object);
+            }
             this.notifier.notify(create, Collections.singleton(this.actorHandler.getXWikiUserReference(actor)));
             this.answer(activityRequest.getResponse(), HttpServletResponse.SC_OK, create);
         }

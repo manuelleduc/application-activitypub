@@ -25,6 +25,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.apache.commons.httpclient.HttpMethod;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrDocument;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.contrib.activitypub.ActivityPubClient;
 import org.xwiki.contrib.activitypub.ActivityPubException;
@@ -32,10 +34,12 @@ import org.xwiki.contrib.activitypub.ActivityPubJsonParser;
 import org.xwiki.contrib.activitypub.ActivityPubObjectReferenceResolver;
 import org.xwiki.contrib.activitypub.entities.ActivityPubObject;
 import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
+import org.xwiki.search.solr.Solr;
+import org.xwiki.search.solr.SolrException;
 
 /**
  * Default implementation of {@link ActivityPubObjectReferenceResolver}.
- * 
+ *
  * @version $Id$
  */
 @Component
@@ -44,9 +48,15 @@ public class DefaultActivityPubObjectReferenceResolver implements ActivityPubObj
 {
     @Inject
     private ActivityPubJsonParser activityPubJsonParser;
-    
+
     @Inject
     private ActivityPubClient activityPubClient;
+
+    @Inject
+    private Solr solr;
+
+    @Inject
+    private ActivityPubJsonParser jsonParser;
 
     @Override
     public <T extends ActivityPubObject> T resolveReference(ActivityPubObjectReference<T> reference)
@@ -60,20 +70,48 @@ public class DefaultActivityPubObjectReferenceResolver implements ActivityPubObj
             throw new ActivityPubException("The reference property is null and does not have any ID to follow.");
         }
         if (result == null) {
+            result = this.trySolr(reference);
+        }
+        if (result == null) {
+            result = this.tryRest(reference);
+        }
+        return result;
+    }
+
+    private <T extends ActivityPubObject> T tryRest(ActivityPubObjectReference<T> reference) throws ActivityPubException
+    {
+        T result;
+        try {
+            HttpMethod getMethod = this.activityPubClient.get(reference.getLink());
             try {
-                HttpMethod getMethod = this.activityPubClient.get(reference.getLink());
-                try {
-                    this.activityPubClient.checkAnswer(getMethod);
-                    result = this.activityPubJsonParser.parse(getMethod.getResponseBodyAsString());
-                } finally {
-                    getMethod.releaseConnection();
-                }
-                reference.setObject(result);
-            } catch (IOException e) {
-                throw new ActivityPubException(
-                    String.format("Error when retrieving the ActivityPub information from [%s]", reference.getLink()),
-                    e);
+                this.activityPubClient.checkAnswer(getMethod);
+                result = this.activityPubJsonParser.parse(getMethod.getResponseBodyAsString());
+            } finally {
+                getMethod.releaseConnection();
             }
+            reference.setObject(result);
+        } catch (IOException e) {
+            throw new ActivityPubException(
+                String
+                    .format("Error when retrieving the ActivityPub information from [%s]", reference.getLink()),
+                e);
+        }
+        return result;
+    }
+
+    private <T extends ActivityPubObject> T trySolr(ActivityPubObjectReference<T> reference)
+        throws ActivityPubException
+    {
+        T result = null;
+        try {
+            String id = reference.getLink().toASCIIString();
+            SolrDocument solrDocument = this.solr.getClient("activitypub").getById(id);
+            if (solrDocument != null) {
+                result = this.jsonParser.parse((String) solrDocument.getFieldValue("content"));
+            }
+        } catch (SolrException | SolrServerException | IOException e) {
+            throw new ActivityPubException(
+                String.format("Error while retrieving an object reference [%s] from solr.", reference), e);
         }
         return result;
     }

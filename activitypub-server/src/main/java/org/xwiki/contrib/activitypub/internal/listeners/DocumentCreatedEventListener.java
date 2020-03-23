@@ -40,8 +40,8 @@ import org.xwiki.contrib.activitypub.ActivityPubObjectReferenceResolver;
 import org.xwiki.contrib.activitypub.ActivityPubStorage;
 import org.xwiki.contrib.activitypub.ActivityRequest;
 import org.xwiki.contrib.activitypub.ActorHandler;
-import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
 import org.xwiki.contrib.activitypub.entities.AbstractActor;
+import org.xwiki.contrib.activitypub.entities.ActivityPubObjectReference;
 import org.xwiki.contrib.activitypub.entities.Create;
 import org.xwiki.contrib.activitypub.entities.Document;
 import org.xwiki.contrib.activitypub.entities.OrderedCollection;
@@ -109,7 +109,6 @@ public class DocumentCreatedEventListener extends AbstractEventListener
     @Override
     public void onEvent(Event event, Object source, Object data)
     {
-        DocumentCreatedEvent documentCreatedEvent = (DocumentCreatedEvent) event;
         XWikiDocument document = (XWikiDocument) source;
         XWikiContext context = (XWikiContext) data;
 
@@ -117,14 +116,19 @@ public class DocumentCreatedEventListener extends AbstractEventListener
             UserReference authorReference =
                 this.xWikiUserBridge.resolveDocumentReference(document.getAuthorReference());
             AbstractActor author = this.actorHandler.getActor(authorReference);
-            OrderedCollection<AbstractActor> followers =
-                this.objectReferenceResolver.resolveReference(author.getFollowers());
+            OrderedCollection<AbstractActor> followers;
+            ActivityPubObjectReference<OrderedCollection<AbstractActor>> followersReference = author.getFollowers();
+            if (followersReference != null) {
+                followers = this.objectReferenceResolver.resolveReference(followersReference);
+            } else {
+                followers = new OrderedCollection<>();
+            }
 
             // ensure the page can be viewed with guest user to not disclose private stuff in a notif
             boolean guestAccess =
                 this.authorizationManager.hasAccess(Right.VIEW, GUEST_USER, document.getDocumentReference());
             if (guestAccess && !followers.isEmpty()) {
-                Create createActivity = getActivity(author, document, context);
+                Create createActivity = this.getActivity(author, document, context);
                 ActivityRequest<Create> activityRequest = new ActivityRequest<>(createActivity.getActor().getObject(),
                     createActivity);
                 this.createActivityHandler.handleOutboxRequest(activityRequest);
