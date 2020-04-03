@@ -20,7 +20,14 @@
 package org.xwiki.contrib.activitypub.internal;
 
 import java.net.URI;
-import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Calendar;
@@ -36,16 +43,16 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.contrib.activitypub.ActivityPubException;
 import org.xwiki.contrib.activitypub.CryptoService;
 import org.xwiki.contrib.activitypub.SignatureService;
-import org.xwiki.crypto.pkix.CertifyingSigner;
 import org.xwiki.crypto.pkix.params.CertifiedKeyPair;
 import org.xwiki.crypto.signer.CMSSignedDataGenerator;
 import org.xwiki.crypto.signer.SignerFactory;
-import org.xwiki.crypto.signer.param.CMSSignedDataGeneratorParameters;
 import org.xwiki.crypto.store.KeyStore;
 import org.xwiki.crypto.store.KeyStoreException;
 import org.xwiki.crypto.store.WikiStoreReference;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.user.UserReference;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Default implementation of the signature service.
@@ -117,13 +124,15 @@ public class DefaultSignatureService implements SignatureService
         throws ActivityPubException
     {
         try {
-            CertifiedKeyPair keyPair = this.getCertifiedKeyPair(user);
-            CMSSignedDataGeneratorParameters parameters = new CMSSignedDataGeneratorParameters().addSigner(
-                CertifyingSigner.getInstance(true, keyPair, this.signerFactory));
-
-            return this.cmsSignedDataGenerator.generate(signedString.getBytes(), parameters, false);
-        } catch (GeneralSecurityException e) {
-            throw new ActivityPubException("Error while signing [" + signedString + "]", e);
+            Signature sign = Signature.getInstance("SHA256withRSA");
+            PrivateKey key = KeyFactory.getInstance("RSA").generatePrivate(
+                new PKCS8EncodedKeySpec(this.getCertifiedKeyPair(user).getPrivateKey().getEncoded()));
+            sign.initSign(key);
+            sign.update(signedString.getBytes(UTF_8));
+            return sign.sign();
+        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | InvalidKeySpecException e) {
+            throw new ActivityPubException(String.format("Error while signing [%s] for [%s]", signedString, user),
+                e);
         }
     }
 

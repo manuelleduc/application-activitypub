@@ -128,6 +128,7 @@ public class AcceptActivityHandler extends AbstractActivityHandler<Accept>
             this.activityPubStorage.storeEntity(acceptingActorFollowers);
 
             accept.getObject().setExpand(true);
+            // MAYBE SIGN HERE
             HttpMethod postMethod = this.activityPubClient.postInbox(followingActor, accept);
             try {
                 this.activityPubClient.checkAnswer(postMethod);
