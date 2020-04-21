@@ -1,0 +1,13 @@
+{
+	"extends": [
+		"config:base"
+	],
+	"packageRules": [{
+		"managers": ["maven"],
+		"registryUrls": ["http://nexus.xwiki.org/nexus/content/groups/public"]
+	}],
+	"hostRules": [{
+		"hostType": "maven",
+		"endpoint": "http://nexus.xwiki.org/nexus/content/groups/public"
+	}]
+}
