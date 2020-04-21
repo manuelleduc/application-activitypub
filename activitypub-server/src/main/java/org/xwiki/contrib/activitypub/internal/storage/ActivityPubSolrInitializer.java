@@ -65,13 +65,13 @@ public class ActivityPubSolrInitializer implements SolrCoreInitializer
     {
         try {
             SchemaResponse.FieldsResponse response = new SchemaRequest.Fields().process(client);
-            if (!schemaAlreadyExists(response)) {
-                createFieldTypes(client);
-                createField(client, CONTENT, STRING_TYPE);
-                createField(client, TYPE, STRING_TYPE);
-                // FIXME: we should rely on the constant introduced by the new SolR API once it will be released.
-                createField(client, "updatedDate", DATE_TYPE);
-            }
+//            if (!this.schemaAlreadyExists(response)) {
+            this.createFieldTypes(client);
+            this.createField(client, CONTENT, STRING_TYPE);
+            this.createField(client, TYPE, STRING_TYPE);
+            // FIXME: we should rely on the constant introduced by the new SolR API once it will be released.
+            this.createField(client, "updatedDate", DATE_TYPE);
+//            }
         } catch (SolrServerException | IOException | org.apache.solr.common.SolrException e)
         {
             throw new SolrException("Error when initializing activitypub Solr schema", e);
@@ -83,28 +83,36 @@ public class ActivityPubSolrInitializer implements SolrCoreInitializer
     // https://github.com/xwiki/xwiki-platform/commit/4fc3a7102ee2ea2beae612ebd67f9089a52aa7c4
     private void createFieldTypes(SolrClient client) throws IOException, SolrServerException
     {
-        FieldTypeDefinition definition = new FieldTypeDefinition();
-        Map<String, Object> typeAttributes = new HashMap<>();
-        typeAttributes.put(FieldType.TYPE_NAME, DATE_TYPE);
-        typeAttributes.put(FieldType.CLASS_NAME, DatePointField.class.getName());
-        typeAttributes.put("docValues", true);
-        definition.setAttributes(typeAttributes);
-        new SchemaRequest.AddFieldType(definition).process(client);
+        try {
+            FieldTypeDefinition definition = new FieldTypeDefinition();
+            Map<String, Object> typeAttributes = new HashMap<>();
+            typeAttributes.put(FieldType.TYPE_NAME, DATE_TYPE);
+            typeAttributes.put(FieldType.CLASS_NAME, DatePointField.class.getName());
+            typeAttributes.put("docValues", true);
+            definition.setAttributes(typeAttributes);
+            new SchemaRequest.AddFieldType(definition).process(client);
+        } catch (Exception e) {
+
+        }
     }
 
     private void createField(SolrClient client, String name, String type) throws IOException, SolrServerException
     {
-        Map<String, Object> fieldAttributes = new HashMap<>();
-        fieldAttributes.put(NAME, name);
-        fieldAttributes.put(TYPE, type);
-        new SchemaRequest.AddField(fieldAttributes).process(client);
+        try {
+            Map<String, Object> fieldAttributes = new HashMap<>();
+            fieldAttributes.put(NAME, name);
+            fieldAttributes.put(TYPE, type);
+            new SchemaRequest.AddField(fieldAttributes).process(client);
+        } catch (Exception e) {
+        }
     }
 
     private boolean schemaAlreadyExists(SchemaResponse.FieldsResponse response)
     {
+        String content = CONTENT;
         if (response != null) {
             for (Map<String, Object> field : response.getFields()) {
-                if (CONTENT.equals(field.get(NAME))) {
+                if (content.equals(field.get(NAME))) {
                     return true;
                 }
             }

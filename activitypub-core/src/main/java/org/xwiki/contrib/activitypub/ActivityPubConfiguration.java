@@ -63,4 +63,16 @@ public interface ActivityPubConfiguration
      * @return the reference to the group who handles a followed wiki.
      */
     DocumentReference getWikiGroup();
+
+    /**
+     * @return the value of the page notification configuration value.
+     * @since 1.2
+     */
+    boolean getPagesNotification();
+
+    /**
+     * @return the value of the user page notificatin value.
+     * @since 1.2
+     */
+    boolean getUserPagesNotification();
 }

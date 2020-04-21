@@ -137,7 +137,10 @@ public class ActivityPubResourceReferenceHandler extends AbstractResourceReferen
         HttpServletResponse response = ((ServletResponse) this.container.getResponse()).getHttpServletResponse();
         try {
             ActivityPubObject entity =
-                    this.activityPubStorage.retrieveEntity(new URI(request.getRequestURL().toString()));
+                this.activityPubStorage.retrieveEntity(new URI(request.getRequestURL().toString()));
+
+            this.logger.debug("[>>>>>] handle [{}]", request);
+//            this.logger.debug("[>>>>>] request body [{}]", IOUtils.toString(request.getReader()));
 
             this.issueMissingPublicKey(entity);
 
