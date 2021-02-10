@@ -59,7 +59,7 @@
     <tag>HEAD</tag>
   </scm>
   <properties>
-    <commons.version>12.3-SNAPSHOT</commons.version>
+    <commons.version>12.10.4</commons.version>
     <platform.version>12.3-SNAPSHOT</platform.version>
     <xwiki.release.jira.skip>false</xwiki.release.jira.skip>
     <xwiki.issueManagement.jira.id>XAP</xwiki.issueManagement.jira.id>
